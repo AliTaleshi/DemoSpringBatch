@@ -2,17 +2,17 @@ package com.example.DemoSpringBatch.config;
 
 import com.example.DemoSpringBatch.listener.SimpleJobExecutionListener;
 import lombok.AllArgsConstructor;
+import org.hibernate.engine.jdbc.batch.spi.Batch;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecutionListener;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
-import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.ItemReader;
-import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 
 @Configuration
 @EnableBatchProcessing
@@ -21,10 +21,11 @@ public class BatchConfig {
 
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
+//    public static int n = 0;
 
 
     @Bean
-    public Job demoJob(Step demoStep, JobExecutionListener listener) {
+    public Job demoJob(Step demoStep, SimpleJobExecutionListener listener) {
         return jobBuilderFactory.get("demoJob")
                 .listener(listener)
                 .start(demoStep)
@@ -32,18 +33,30 @@ public class BatchConfig {
     }
 
     @Bean
-    public Step demoStep(ItemReader<String> reader, ItemProcessor<String, String> processor, ItemWriter<String> writer) {
+    public Step demoStep(ItemReader<String> reader, ItemProcessor<String, String> processor, ItemWriter<String> writer, SimpleAsyncTaskExecutor simpleAsyncTaskExecutor) {
         return stepBuilderFactory.get("demoStep")
                 .<String, String>chunk(5)
                 .reader(reader)
                 .processor(processor)
                 .writer(writer)
+                .taskExecutor(simpleAsyncTaskExecutor)
                 .build();
     }
 
     @Bean
     public ItemReader<String> reader() {
-        return () -> "Hello,World,Spring,Batch,Demo".split(",")[0];
+        return new ItemReader<String>() {
+            private int n = 0;
+
+            @Override
+            public String read() throws Exception, UnexpectedInputException, ParseException, NonTransientResourceException {
+                if (n == 0) {
+                    n++;
+                    return "hello";
+                }
+                return null;
+            }
+        };
     }
 
     @Bean
@@ -59,5 +72,10 @@ public class BatchConfig {
     @Bean
     public JobExecutionListener listener() {
         return new SimpleJobExecutionListener();
+    }
+
+    @Bean
+    public SimpleAsyncTaskExecutor customTaskExecutor() {
+        return new SimpleAsyncTaskExecutor("spring_batch");
     }
 }

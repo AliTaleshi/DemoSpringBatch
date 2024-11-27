@@ -2,7 +2,9 @@ package com.example.DemoSpringBatch.listener;
 
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobExecutionListener;
+import org.springframework.stereotype.Component;
 
+@Component
 public class SimpleJobExecutionListener implements JobExecutionListener {
 
     @Override
